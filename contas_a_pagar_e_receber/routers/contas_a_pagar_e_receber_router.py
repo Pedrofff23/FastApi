@@ -18,7 +18,7 @@ class ContaPagarReceberResponse(BaseModel):
     descricao: str
     valor: float
     tipo: str  # Pagar ou Receber
-    
+
     class Config:
         orm_mode = True
 
@@ -30,15 +30,8 @@ class ContaPagarReceberRequest(BaseModel):
 
 
 @router.get("", response_model=List[ContaPagarReceberResponse])
-def listar_contas():
-    return [
-        ContaPagarReceberResponse(
-            id=1, descricao="Conta de Luz", valor=100.00, tipo="Pagar"
-        ),
-        ContaPagarReceberResponse(
-            id=2, descricao="Conta de Água", valor=50.00, tipo="Pagar"
-        ),
-    ]
+def listar_contas(db: Session = Depends(get_db)) -> List[ContaPagarReceberResponse]:
+    return db.query(ContaPagarReceber).all()
 
 
 @router.post("", response_model=ContaPagarReceberResponse, status_code=201)
