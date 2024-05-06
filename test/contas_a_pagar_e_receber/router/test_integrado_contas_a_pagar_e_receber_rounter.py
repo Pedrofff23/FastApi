@@ -1,0 +1,127 @@
+from urllib import response
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+from main import app
+from shared.database import Base
+from shared.dependencies import get_db
+
+client = TestClient(app)
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test/test.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
+
+
+def test_deve_listar_contas_a_pagar_e_receber():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Conta de Luz", "valor": 100.00, "tipo": "PAGAR"},
+    )
+    client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Conta de Água", "valor": 50.00, "tipo": "PAGAR"},
+    )
+
+    response = client.get("/contas-a-pagar-e-receber/")
+    assert response.status_code == 200
+
+    print(response.json())
+
+    assert response.json() == [
+        {"id": 1, "descricao": "Conta de Luz", "valor": 100.00, "tipo": "PAGAR"},
+        {"id": 2, "descricao": "Conta de Água", "valor": 50.00, "tipo": "PAGAR"},
+    ]
+
+
+def test_deve_criar_conta_a_pagar_e_receber():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    nova_conta = {"descricao": "Conta de Internet", "valor": 200.0, "tipo": "PAGAR"}
+
+    nova_conta_copy = nova_conta.copy()
+
+    nova_conta_copy["id"] = 1
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json=nova_conta,
+    )
+    assert response.status_code == 201
+    assert response.json() == nova_conta_copy
+
+    # assert response.json()["descricao"] == nova_conta["descricao"]
+
+
+def test_deve_retornar_erro_quando_exceder_a_descricao_ou_for_menor_que_o_necessario():
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={
+            "descricao": "0123456789012345678901234567890111",
+            "valor": 200.0,
+            "tipo": "PAGAR",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "descricao"]
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={
+            "descricao": "12",
+            "valor": 200.0,
+            "tipo": "PAGAR",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "descricao"]
+
+
+def test_deve_retornar_erro_quando_valor_for_zero_ou_menor():
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Teste", "valor": 0, "tipo": "PAGAR"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "valor"]
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Teste", "valor": -1, "tipo": "PAGAR"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "valor"]
+
+
+def test_deve_retornar_erro_quando_tipo_for_invalido():
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Teste", "valor": 100, "tipo": "TESTE"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "tipo"]
