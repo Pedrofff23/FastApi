@@ -1,3 +1,4 @@
+import re
 from urllib import response
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -52,6 +53,25 @@ def test_deve_listar_contas_a_pagar_e_receber():
         {"id": 2, "descricao": "Conta de Água", "valor": 50.00, "tipo": "PAGAR"},
     ]
 
+def test_deve_pegar_por_id():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Conta de Internet", "valor": 100.0, "tipo": "PAGAR"},
+    )
+
+    id_da_conta = response.json()["id"]
+
+    response_get = client.get(
+        f"/contas-a-pagar-e-receber/{id_da_conta}",
+    )
+
+    assert response_get.status_code == 200
+    assert response_get.json()["valor"] == 100.0
+    assert response_get.json()["tipo"] == "PAGAR"
+
 
 def test_deve_criar_conta_a_pagar_e_receber():
     Base.metadata.drop_all(bind=engine)
@@ -71,6 +91,48 @@ def test_deve_criar_conta_a_pagar_e_receber():
     assert response.json() == nova_conta_copy
 
     # assert response.json()["descricao"] == nova_conta["descricao"]
+
+
+# TDD - Test Driven Development
+
+
+def test_deve_atualizar_conta_a_pagar_e_receber():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Conta de Internet", "valor": 200.0, "tipo": "PAGAR"},
+    )
+
+    id_da_conta = response.json()["id"]
+
+    response_put = client.put(
+        f"/contas-a-pagar-e-receber/{id_da_conta}",
+        json={"descricao": "Conta de Internet", "valor": 111.0, "tipo": "PAGAR"},
+    )
+
+    assert response_put.status_code == 200
+    assert response_put.json()["valor"] == 111.0
+
+
+
+def test_deve_remover_conta_a_pagar_e_receber():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json={"descricao": "Conta de Internet", "valor": 200.0, "tipo": "PAGAR"},
+    )
+
+    id_da_conta = response.json()["id"]
+
+    response_put = client.delete(
+        f"/contas-a-pagar-e-receber/{id_da_conta}",
+    )
+
+    assert response_put.status_code == 204
 
 
 def test_deve_retornar_erro_quando_exceder_a_descricao_ou_for_menor_que_o_necessario():
