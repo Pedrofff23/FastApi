@@ -16,8 +16,16 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 
+#DEPOIS DE COLOCAR AQUI USAR O COMANDO alembic revision --autogenerate -m "Cria tabela de ..."
+# E DEPOIS O alembic upgrade head
+
 # noinspection PyUnresolvedReferences
-from contas_a_pagar_e_receber.models.contas_a_pagar_e_receber_model import ContaPagarReceber
+from contas_a_pagar_e_receber.models.contas_a_pagar_e_receber_model import (
+    ContaPagarReceber,
+)
+
+# noinspection PyUnresolvedReferences
+from contas_a_pagar_e_receber.models.fornecedor_cliente_model import FornecedorCliente
 
 from shared.database import Base
 
@@ -67,9 +75,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

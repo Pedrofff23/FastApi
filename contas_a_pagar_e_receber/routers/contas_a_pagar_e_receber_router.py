@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-import contas_a_pagar_e_receber
 from contas_a_pagar_e_receber.models.contas_a_pagar_e_receber_model import (
     ContaPagarReceber,
 )
@@ -14,9 +13,6 @@ from shared.dependencies import get_db
 from shared.exeptions import NotFound
 
 router = APIRouter(prefix="/contas-a-pagar-e-receber")
-
-session = Session()
-
 
 class ContaPagarReceberResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
