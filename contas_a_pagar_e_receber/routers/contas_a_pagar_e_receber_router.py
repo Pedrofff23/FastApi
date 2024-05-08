@@ -14,6 +14,7 @@ from shared.exeptions import NotFound
 
 router = APIRouter(prefix="/contas-a-pagar-e-receber")
 
+
 class ContaPagarReceberResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
@@ -32,6 +33,7 @@ class ContaPagarReceberRequest(BaseModel):
     descricao: str = Field(min_length=3, max_length=30)
     valor: Decimal = Field(gt=0)
     tipo: ContaPagarReceberTipoEnum  # Pagar ou Receber
+    fornecedor_cliente_id: int | None = None
 
 
 @router.get("", response_model=List[ContaPagarReceberResponse])
