@@ -1,4 +1,3 @@
-
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -48,8 +47,20 @@ def test_deve_listar_contas_a_pagar_e_receber():
     print(response.json())
 
     assert response.json() == [
-        {"id": 1, "descricao": "Conta de Luz", "valor": 100.00, "tipo": "PAGAR"},
-        {"id": 2, "descricao": "Conta de Água", "valor": 50.00, "tipo": "PAGAR"},
+        {
+            "id": 1,
+            "descricao": "Conta de Luz",
+            "valor": 100.00,
+            "tipo": "PAGAR",
+            "fornecedor": None,
+        },
+        {
+            "id": 2,
+            "descricao": "Conta de Água",
+            "valor": 50.00,
+            "tipo": "PAGAR",
+            "fornecedor": None,
+        },
     ]
 
 
@@ -88,7 +99,12 @@ def test_deve_criar_conta_a_pagar_e_receber():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
-    nova_conta = {"descricao": "Conta de Internet", "valor": 200.0, "tipo": "PAGAR"}
+    nova_conta = {
+        "descricao": "Conta de Internet",
+        "valor": 200.0,
+        "tipo": "PAGAR",
+        "fornecedor": None,
+    }
 
     nova_conta_copy = nova_conta.copy()
 
@@ -102,6 +118,52 @@ def test_deve_criar_conta_a_pagar_e_receber():
     assert response.json() == nova_conta_copy
 
     # assert response.json()["descricao"] == nova_conta["descricao"]
+
+
+def test_deve_criar_conta_a_pagar_e_receber_com_fornecedor_cliente_id():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    novo_fornecedor_cliente = {"nome": "Extra Super Mercados"}
+
+    client.post("/fornecedor-cliente", json=novo_fornecedor_cliente)
+
+    nova_conta = {
+        "descricao": "Conta de Internet",
+        "valor": 200.0,
+        "tipo": "PAGAR",
+        "fornecedor_cliente_id": 1,
+    }
+
+    nova_conta_copy = nova_conta.copy()
+    nova_conta_copy["id"] = 1
+    nova_conta_copy["fornecedor"] = {"id": 1, "nome": "Extra Super Mercados"}
+    del nova_conta_copy["fornecedor_cliente_id"]
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json=nova_conta,
+    )
+    assert response.status_code == 201
+    assert response.json() == nova_conta_copy
+
+
+def test_deve_retornar_erro_ao_inserir_nova_conta_com_fornecedor_invalido():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    nova_conta = {
+        "descricao": "Conta de Internet",
+        "valor": 200.0,
+        "tipo": "PAGAR",
+        "fornecedor_cliente_id": 1000,
+    }
+
+    response = client.post(
+        "/contas-a-pagar-e-receber",
+        json=nova_conta,
+    )
+    assert response.status_code == 422
 
 
 # TDD - Test Driven Development
@@ -125,6 +187,57 @@ def test_deve_atualizar_conta_a_pagar_e_receber():
 
     assert response_put.status_code == 200
     assert response_put.json()["valor"] == 111.0
+
+
+def test_deve_atualizar_conta_a_pagar_e_receber_com_fornecedor_cliente_id():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    novo_fornecedor_cliente = {
+        "nome": "Código e CIA"
+    }
+
+    client.post("/fornecedor-cliente", json=novo_fornecedor_cliente)
+
+    response = client.post("/contas-a-pagar-e-receber", json={
+        "descricao": "Curso de Python",
+        "valor": 333,
+        "tipo": "PAGAR"
+    })
+
+    id_da_conta_a_pagar_e_receber = response.json()['id']
+
+    response_put = client.put(f"/contas-a-pagar-e-receber/{id_da_conta_a_pagar_e_receber}", json={
+        "descricao": "Curso de Python",
+        "valor": 111,
+        "tipo": "PAGAR",
+        "fornecedor_cliente_id": 1
+    })
+
+    assert response_put.status_code == 200
+    assert response_put.json()["fornecedor"] == {"id": 1, "nome": "Código e CIA"}
+
+
+def test_deve_atualizar_conta_a_pagar_e_receber_com_fornecedor_cliente_id_invalido():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    response = client.post("/contas-a-pagar-e-receber", json={
+        "descricao": "Curso de Python",
+        "valor": 333,
+        "tipo": "PAGAR"
+    })
+
+    id_da_conta_a_pagar_e_receber = response.json()['id']
+
+    response_put = client.put(f"/contas-a-pagar-e-receber/{id_da_conta_a_pagar_e_receber}", json={
+        "descricao": "Curso de Python",
+        "valor": 111,
+        "tipo": "PAGAR",
+        "fornecedor_cliente_id": 100
+    })
+
+    assert response_put.status_code == 422
 
 
 def test_deve_retornar_nao_encontrado_para_id_nao_existente_na_atualizacao():

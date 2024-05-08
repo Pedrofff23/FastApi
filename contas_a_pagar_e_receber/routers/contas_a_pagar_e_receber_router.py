@@ -9,6 +9,10 @@ from sqlalchemy.orm import Session
 from contas_a_pagar_e_receber.models.contas_a_pagar_e_receber_model import (
     ContaPagarReceber,
 )
+from contas_a_pagar_e_receber.models.fornecedor_cliente_model import FornecedorCliente
+from contas_a_pagar_e_receber.routers.fornecedor_cliente_router import (
+    FornecedorClienteResponse,
+)
 from shared.dependencies import get_db
 from shared.exeptions import NotFound
 
@@ -22,6 +26,8 @@ class ContaPagarReceberResponse(BaseModel):
     descricao: str
     valor: float
     tipo: str  # Pagar ou Receber
+
+    fornecedor: FornecedorClienteResponse | None = None
 
 
 class ContaPagarReceberTipoEnum(str, Enum):
@@ -55,6 +61,8 @@ def criar_conta(
     db: Session = Depends(get_db),
 ) -> ContaPagarReceberResponse:
 
+    valida_fornecedor(conta_a_pagar_e_receber_request.fornecedor_cliente_id, db)
+
     contas_a_pagar_e_receber = ContaPagarReceber(
         # descricao=conta.descricao, valor=conta.valor, tipo=conta.tipo
         **conta_a_pagar_e_receber_request.model_dump()
@@ -74,11 +82,16 @@ def atualizar_conta(
     db: Session = Depends(get_db),
 ) -> ContaPagarReceberResponse:
 
+    valida_fornecedor(conta_a_pagar_e_receber_request.fornecedor_cliente_id, db)
+
     conta_a_pagar_e_receber = busca_conta_por_id(id, db)
 
     conta_a_pagar_e_receber.tipo = conta_a_pagar_e_receber_request.tipo
     conta_a_pagar_e_receber.descricao = conta_a_pagar_e_receber_request.descricao
     conta_a_pagar_e_receber.valor = conta_a_pagar_e_receber_request.valor
+    conta_a_pagar_e_receber.fornecedor_cliente_id = (
+        conta_a_pagar_e_receber_request.fornecedor_cliente_id
+    )
 
     db.add(conta_a_pagar_e_receber)
     db.commit()
@@ -105,3 +118,12 @@ def busca_conta_por_id(id: int, db: Session) -> ContaPagarReceber:
         raise NotFound("Conta a Pagar e receber")
 
     return conta_a_pagar_e_receber
+
+
+def valida_fornecedor(fornecedor_cliente_id, db):
+    if fornecedor_cliente_id is not None:
+        conta_apagar_e_receber = db.get(FornecedorCliente, fornecedor_cliente_id)
+        if conta_apagar_e_receber is None:
+            raise HTTPException(
+                status_code=422, detail="Esse fornecedor não existe no banco de dados"
+            )
