@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
 
 from shared.database import Base
@@ -11,7 +11,8 @@ class ContaPagarReceber(Base):
     descricao = Column(String(30))
     valor = Column(Numeric(scale=2))
     tipo = Column(String(30))
-    data_baixa = Column(DateTime())
+    data_previsao = Column(Date(), nullable=False)
+    data_baixa = Column(Date())
     valor_baixa = Column(Numeric(scale=2))
     esta_baixada = Column(Boolean, default=False)
 
