@@ -27,12 +27,10 @@ class FornecedorClienteRequest(BaseModel):
 def listar_fornecedor_cliente(db: Session = Depends(get_db)) -> List[FornecedorClienteResponse]:
     return db.query(FornecedorCliente).all()
 
-
 @router.get("/{id_do_fornecedor_cliente}", response_model=FornecedorClienteResponse)
 def obter_fornecedor_cliente_por_id(id_do_fornecedor_cliente: int,
                                     db: Session = Depends(get_db)) -> List[FornecedorClienteResponse]:
     return busca_fornecedor_cliente_por_id(id_do_fornecedor_cliente, db)
-
 
 @router.post("", response_model=FornecedorClienteResponse, status_code=201)
 def criar_fornecedor_cliente(fornecedor_cliente_request: FornecedorClienteRequest,

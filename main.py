@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from contas_a_pagar_e_receber.routers import (
     contas_a_pagar_e_receber_router,
     fornecedor_cliente_router,
+    fornecedor_cliente_vs_contas_router,
 )
 from shared.exeptions import NotFound
 from shared.exeptions_handler import not_found_exception_handler
@@ -26,6 +27,7 @@ def hello_world() -> str:
 
 app.include_router(contas_a_pagar_e_receber_router.router,tags=['Contas'])
 app.include_router(fornecedor_cliente_router.router,tags=["Fornecedor"])
+app.include_router(fornecedor_cliente_vs_contas_router.router,tags=["Fornecedor"])
 app.add_exception_handler(NotFound, not_found_exception_handler)
 
 
